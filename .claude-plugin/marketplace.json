@@ -5,8 +5,8 @@
     {
       "name": "issue-workflow",
       "source": {
-        "source": "github",
-        "repo": "22a435/issue-workflow"
+        "source": "url",
+        "url": "https://github.com/22a435/issue-workflow.git"
       },
       "description": "Autonomous issue-to-PR workflow with 8 Claude Code stages"
     }
