@@ -1,6 +1,6 @@
 ---
 name: remediation-plan
-description: Create a prioritized remediation plan from review findings, including follow-up issues for complex items. Requires user approval. Invoke with /remediation-plan <session-number>.
+description: Create a prioritized remediation plan from review findings, including follow-up issues for complex items. Requires user approval. Invoke with /deep-review:remediation-plan <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

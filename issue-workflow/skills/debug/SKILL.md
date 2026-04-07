@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Root cause analysis and fix for problems escalated from execute, verify, or review. Runs as a dedicated orchestrator stage with a fresh context window. Invoke with /debug <issue-number>.
+description: Root cause analysis and fix for problems escalated from execute, verify, or review. Runs as a dedicated orchestrator stage with a fresh context window. Invoke with /issue-workflow:debug <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch
 ---

@@ -1,6 +1,6 @@
 ---
 name: context-building
-description: Build comprehensive project context -- structure, tech stack, documentation, tool discovery, recommendations. Invoke with /context-building <session-number>.
+description: Build comprehensive project context -- structure, tech stack, documentation, tool discovery, recommendations. Invoke with /deep-review:context-building <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch
 ---

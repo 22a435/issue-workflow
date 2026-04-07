@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Implement the approved plan using parallel subagents. Documents failures and signals debug when components fail verification. Invoke with /execute <issue-number>.
+description: Implement the approved plan using parallel subagents. Documents failures and signals debug when components fail verification. Invoke with /issue-workflow:execute <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch
 ---

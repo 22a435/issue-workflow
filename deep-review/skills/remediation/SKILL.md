@@ -1,6 +1,6 @@
 ---
 name: remediation
-description: Apply approved remediations, create GitHub issues for complex items, run /simplify cleanup. The ONLY stage that edits repo code. Invoke with /remediation <session-number>.
+description: Apply approved remediations, create GitHub issues for complex items, run /simplify cleanup. The ONLY stage that edits repo code. Invoke with /deep-review:remediation <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch, Skill
 ---

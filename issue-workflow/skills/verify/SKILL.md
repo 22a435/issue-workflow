@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Full verification suite -- re-runs all component checks, integration tests, and repo test suites. Documents failures and signals debug. Invoke with /verify <issue-number>.
+description: Full verification suite -- re-runs all component checks, integration tests, and repo test suites. Documents failures and signals debug. Invoke with /issue-workflow:verify <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

@@ -1,6 +1,6 @@
 ---
 name: review
-description: Execute the deep review -- launch parallel sub-reviewers, run tools, compile findings into comprehensive Review.md. Invoke with /review <session-number>.
+description: Execute the deep review -- launch parallel sub-reviewers, run tools, compile findings into comprehensive Review.md. Invoke with /deep-review:review <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch, Skill
 ---

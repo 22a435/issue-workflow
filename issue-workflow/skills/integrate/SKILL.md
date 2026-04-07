@@ -1,6 +1,6 @@
 ---
 name: integrate
-description: Prepare the feature branch for merge. Rebases or merges main, resolves conflicts. Invoke with /integrate <issue-number>.
+description: Prepare the feature branch for merge. Rebases or merges main, resolves conflicts. Invoke with /issue-workflow:integrate <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

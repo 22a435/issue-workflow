@@ -1,6 +1,6 @@
 ---
 name: interview
-description: Resolve open questions and ambiguities from research with user input. Asks structured questions and records decisions. Invoke with /interview <issue-number>.
+description: Resolve open questions and ambiguities from research with user input. Asks structured questions and records decisions. Invoke with /issue-workflow:interview <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

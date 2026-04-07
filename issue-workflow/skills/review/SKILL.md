@@ -1,6 +1,6 @@
 ---
 name: review
-description: Code quality review of all changes. Checks correctness, style, security, documentation. Requires user approval for functional changes. Invoke with /review <issue-number>.
+description: Code quality review of all changes. Checks correctness, style, security, documentation. Requires user approval for functional changes. Invoke with /issue-workflow:review <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch, Skill
 ---

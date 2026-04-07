@@ -1,6 +1,6 @@
 ---
 name: interview
-description: Resolve ambiguities, present tool recommendations for approval, gather review priorities. Invoke with /interview <session-number>.
+description: Resolve ambiguities, present tool recommendations for approval, gather review priorities. Invoke with /deep-review:interview <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

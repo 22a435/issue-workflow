@@ -1,6 +1,6 @@
 ---
 name: research
-description: Deep research phase for issue resolution. Investigates codebase, web resources, and library documentation. Invoke with /research <issue-number>.
+description: Deep research phase for issue resolution. Investigates codebase, web resources, and library documentation. Invoke with /issue-workflow:research <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Edit, Write, WebSearch, WebFetch
 ---

@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Create a comprehensive review plan based on context, interview, and available tools. Requires user approval. Invoke with /plan <session-number>.
+description: Create a comprehensive review plan based on context, interview, and available tools. Requires user approval. Invoke with /deep-review:plan <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---

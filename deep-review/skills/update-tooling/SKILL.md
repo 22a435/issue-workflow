@@ -1,6 +1,6 @@
 ---
 name: update-tooling
-description: Install user-approved review tools and configure them for the project. Invoke with /update-tooling <session-number>.
+description: Install user-approved review tools and configure them for the project. Invoke with /deep-review:update-tooling <session-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, WebSearch, WebFetch
 ---

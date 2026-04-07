@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Draft a comprehensive implementation plan based on issue, research, and interview. Requires user approval before proceeding. Invoke with /plan <issue-number>.
+description: Draft a comprehensive implementation plan based on issue, research, and interview. Requires user approval before proceeding. Invoke with /issue-workflow:plan <issue-number>.
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
 ---
