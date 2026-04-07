@@ -2,7 +2,7 @@
 name: plan
 description: Draft a comprehensive implementation plan based on issue, research, and interview. Requires user approval before proceeding. Invoke with /issue-workflow:plan <issue-number>.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
+allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, AskUserQuestion
 ---
 
 # Planning Phase
@@ -102,16 +102,32 @@ git push
 
 ### Step 4: Present the Plan to the User
 
-Present the full plan to the user for review. Tell them:
+Present the full plan to the user as text. Then use the `AskUserQuestion` tool to collect their decision:
 
-"Here is the complete implementation plan. Please review it. You can:
-- **Approve** it as-is to proceed to implementation
-- **Request edits** to specific sections
-- **Escalate** back to interview or research if something needs more discussion"
+```
+AskUserQuestion({
+  questions: [{
+    question: "How would you like to proceed with this implementation plan?",
+    header: "Plan Review",
+    options: [
+      { label: "Approve", description: "Plan looks good -- proceed to implementation" },
+      { label: "Request edits", description: "Specific sections need changes before approval" },
+      { label: "Escalate", description: "Needs more discussion -- return to interview or research" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+The user can also select "Other" to provide free-text feedback.
 
 ### Step 5: Handle Feedback
 
-If the user requests edits:
+Based on the user's `AskUserQuestion` response:
+
+**"Approve"** -- Proceed to Step 6 (Create Draft PR).
+
+**"Request edits"** (or "Other" with edit instructions):
 - Edit `./claude-work/$0/Plan.md` in place with the requested changes
 - Commit and push after each round of edits:
   ```bash
@@ -120,9 +136,9 @@ If the user requests edits:
   git push
   ```
 - Present the updated plan to the user
-- Return to Step 4 (ask for approval again)
+- Return to Step 4 (re-invoke `AskUserQuestion` for approval)
 
-If the user escalates to interview or research:
+**"Escalate"** (or "Other" requesting interview/research):
 - Note what needs to be revisited in Plan.md
 - Commit and push the current state of Plan.md if it has uncommitted changes
 - Write the appropriate stage name to the signal file:
@@ -175,14 +191,28 @@ Write the signal file as your last action, after the commit/push step. See Step 
 If re-triggered and `./claude-work/$0/Plan.md` already exists:
 
 1. Read the existing Plan.md in full
-2. Present it to the user and ask what needs to change
-3. Edit Plan.md in place with the requested changes (git history serves as the audit trail -- do not append revision sections)
+2. Present it to the user, then use `AskUserQuestion` to ask how to proceed:
+   ```
+   AskUserQuestion({
+     questions: [{
+       question: "This plan already exists from a previous run. How would you like to proceed?",
+       header: "Prior Plan",
+       options: [
+         { label: "Approve", description: "Plan looks good as-is -- proceed to implementation" },
+         { label: "Request edits", description: "Specific sections need changes before approval" },
+         { label: "Escalate", description: "Needs more discussion -- return to interview or research" }
+       ],
+       multiSelect: false
+     }]
+   })
+   ```
+3. If edits requested: edit Plan.md in place (git history serves as the audit trail -- do not append revision sections)
 4. Commit and push after each round of edits:
    ```bash
    git add ./claude-work/$0/Plan.md
    git commit -m "claude-work(plan): revise plan -- <brief summary of changes> [#$0]"
    git push
    ```
-5. Return to Step 4 to ask for approval again
+5. Return to Step 4 to re-invoke `AskUserQuestion` for approval
 
 If Plan.md does not exist, start from Step 1.

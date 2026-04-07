@@ -2,7 +2,7 @@
 name: plan
 description: Create a comprehensive review plan based on context, interview, and available tools. Requires user approval. Invoke with /deep-review:plan <session-number>.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
+allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, AskUserQuestion
 ---
 
 # Planning Phase
@@ -149,16 +149,32 @@ git push
 
 ### Step 4: Present the Plan to the User
 
-Present the full plan. Tell them:
+Present the full plan to the user as text. Then use the `AskUserQuestion` tool to collect their decision:
 
-"Here is the complete review plan. Please review it. You can:
-- **Approve** it as-is to proceed to the review
-- **Request edits** to specific sections (e.g., add/remove sub-reviewers, adjust scope)
-- **Request more tools** -- escalate back to interview/update-tooling if additional tools are needed"
+```
+AskUserQuestion({
+  questions: [{
+    question: "How would you like to proceed with this review plan?",
+    header: "Plan Review",
+    options: [
+      { label: "Approve", description: "Plan looks good -- proceed to the review" },
+      { label: "Request edits", description: "Adjust sub-reviewers, scope, or other sections" },
+      { label: "Need more tools", description: "Escalate to interview or update-tooling for additional tools" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+The user can also select "Other" to provide free-text feedback.
 
 ### Step 5: Handle Feedback
 
-If the user requests edits:
+Based on the user's `AskUserQuestion` response:
+
+**"Approve"** -- Proceed. The orchestrator advances to `review` by default.
+
+**"Request edits"** (or "Other" with edit instructions):
 - Edit `./claude-reviews/$0/Plan.md` in place
 - Commit and push:
   ```bash
@@ -166,9 +182,9 @@ If the user requests edits:
   git commit -m "claude-review(plan): revise plan -- <brief summary> [session #$0]"
   git push
   ```
-- Present the updated plan and return to Step 4
+- Present the updated plan and return to Step 4 (re-invoke `AskUserQuestion` for approval)
 
-If the user wants more tools:
+**"Need more tools"** (or "Other" requesting tools):
 - Note what tools are needed
 - Write the signal file:
   ```bash
@@ -195,6 +211,20 @@ If the user wants more tools:
 If re-triggered and `./claude-reviews/$0/Plan.md` already exists:
 
 1. Read the existing Plan.md
-2. Present it to the user and ask what needs to change
-3. Edit in place (git history serves as audit trail)
-4. Commit, push, and re-present for approval
+2. Present it to the user, then use `AskUserQuestion` to ask how to proceed:
+   ```
+   AskUserQuestion({
+     questions: [{
+       question: "This plan already exists from a previous run. How would you like to proceed?",
+       header: "Prior Plan",
+       options: [
+         { label: "Approve", description: "Plan looks good as-is -- proceed to the review" },
+         { label: "Request edits", description: "Adjust sub-reviewers, scope, or other sections" },
+         { label: "Need more tools", description: "Escalate to interview or update-tooling for additional tools" }
+       ],
+       multiSelect: false
+     }]
+   })
+   ```
+3. If edits requested: edit in place (git history serves as audit trail)
+4. Commit, push, and return to Step 4 to re-invoke `AskUserQuestion` for approval

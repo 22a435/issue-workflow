@@ -2,7 +2,7 @@
 name: remediation-plan
 description: Create a prioritized remediation plan from review findings, including follow-up issues for complex items. Requires user approval. Invoke with /deep-review:remediation-plan <session-number>.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
+allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, AskUserQuestion
 ---
 
 # Remediation Planning Phase
@@ -126,28 +126,43 @@ git push
 
 ### Step 5: Present the Plan to the User
 
-Present the full remediation plan. Tell them:
+Present the full remediation plan to the user as text. Then use the `AskUserQuestion` tool to collect their decision:
 
-"Here is the remediation plan. Please review it. You can:
-- **Approve** it as-is to proceed to remediation
-- **Move items** between categories (e.g., move a 'fix now' to 'create issue' or vice versa)
-- **Add items** that the review may have missed
-- **Remove items** you don't want addressed
-- **Request more tools** -- escalate back to interview/update-tooling"
+```
+AskUserQuestion({
+  questions: [{
+    question: "How would you like to proceed with this remediation plan?",
+    header: "Remed Plan",
+    options: [
+      { label: "Approve", description: "Plan looks good -- proceed to remediation" },
+      { label: "Move items", description: "Move findings between Fix Now / Create Issue / Skip categories" },
+      { label: "Edit items", description: "Add or remove specific items from the plan" },
+      { label: "Need more tools", description: "Escalate to interview or update-tooling for additional tools" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+The user can also select "Other" to provide free-text feedback.
 
 ### Step 6: Handle Feedback
 
-If the user requests edits:
-- Edit `Remediation-Plan.md` in place
+Based on the user's `AskUserQuestion` response:
+
+**"Approve"** -- Proceed to Step 7 (Post PR Comment).
+
+**"Move items"** or **"Edit items"** (or "Other" with specific instructions):
+- Edit `Remediation-Plan.md` in place with the requested changes
 - Commit and push:
   ```bash
   git add ./claude-reviews/$0/Remediation-Plan.md
   git commit -m "claude-review(remediation-plan): revise plan -- <summary> [session #$0]"
   git push
   ```
-- Re-present and return to Step 5
+- Present the updated plan and return to Step 5 (re-invoke `AskUserQuestion` for approval)
 
-If the user wants more tools:
+**"Need more tools"** (or "Other" requesting tools):
 - Write the signal file:
   ```bash
   echo "interview" > ./claude-reviews/$0/.next-stage
@@ -185,6 +200,21 @@ Proceeding to remediation."
 If re-triggered and `Remediation-Plan.md` already exists:
 
 1. Read the existing plan
-2. Present it to the user and ask what needs to change
-3. Edit in place (git history serves as audit trail)
-4. Commit, push, and re-present for approval
+2. Present it to the user, then use `AskUserQuestion` to ask how to proceed:
+   ```
+   AskUserQuestion({
+     questions: [{
+       question: "This remediation plan already exists from a previous run. How would you like to proceed?",
+       header: "Prior Plan",
+       options: [
+         { label: "Approve", description: "Plan looks good as-is -- proceed to remediation" },
+         { label: "Move items", description: "Move findings between Fix Now / Create Issue / Skip categories" },
+         { label: "Edit items", description: "Add or remove specific items from the plan" },
+         { label: "Need more tools", description: "Escalate to interview or update-tooling for additional tools" }
+       ],
+       multiSelect: false
+     }]
+   })
+   ```
+3. If edits requested: edit in place (git history serves as audit trail)
+4. Commit, push, and return to Step 5 to re-invoke `AskUserQuestion` for approval

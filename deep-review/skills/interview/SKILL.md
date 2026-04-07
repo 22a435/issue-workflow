@@ -2,7 +2,7 @@
 name: interview
 description: Resolve ambiguities, present tool recommendations for approval, gather review priorities. Invoke with /deep-review:interview <session-number>.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
+allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, AskUserQuestion
 ---
 
 # Interview Phase
@@ -33,42 +33,131 @@ Read `Context.md` in full. If this is a re-trigger, also read the existing `Inte
 
 ### Step 2: Present Tool Recommendations
 
-Present the recommended tools from Context.md to the user. Group them by category (static analysis, security, dependency, etc.). For each tool, show:
-- What it does and what it catches
-- Install and run commands
-- Persistence risk level (low/medium/high)
-- Ask: **approve / reject / defer**
+Use `AskUserQuestion` to present recommended tools from Context.md for approval. Group tools by category.
 
-If no tools were recommended, note this and skip to Step 3.
+**For each category of tools** (static analysis, security, dependency, etc.):
 
-Handle special responses:
-- "approve all" -- approve every recommended tool
-- "skip" or "no tools" -- reject all, proceed with manual review only
-- User suggests tools not in recommendations -- record as user-requested tools
+Call `AskUserQuestion` with one question per tool in that category (up to 4 per call -- split into multiple calls if a category has more):
+- `header`: category abbreviation (e.g. "Security", "Static", "Deps", "Quality")
+- `question`: "[Tool name]: [what it does and what it catches]. Install: `[command]`. Persistence risk: [low/medium/high]. Approve this tool?"
+- `options`:
+  - `label`: "Approve", `description`: "Install and use in this review"
+  - `label`: "Reject", `description`: "Skip this tool"
+  - `label`: "Defer", `description`: "Decide later, after seeing other results"
+- `multiSelect: false` (these are mutually exclusive per tool)
+
+**If no tools were recommended**, skip to Step 3.
+
+**After all tool questions are answered**, ask about additional tools:
+```
+AskUserQuestion({
+  questions: [{
+    question: "Are there any additional tools you'd like to include that weren't recommended?",
+    header: "More Tools",
+    options: [
+      { label: "No, proceed", description: "The approved set is sufficient" },
+      { label: "Yes", description: "I have tools to add -- describe in Other" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+If the user selects "Yes" and provides tool names via "Other", record them as user-requested tools.
+
+**Handle batch responses:** If the user's free-text "Other" response on any tool question says "approve all" or "reject all", apply that decision to all remaining unanswered tool questions without asking further.
 
 ### Step 3: Gather Review Priorities
 
-Ask the user about their review priorities:
+Use `AskUserQuestion` to gather review priorities. Split into two calls (2 questions each) to keep each focused:
 
-1. **Priority ordering:** Which aspects matter most? (security, performance, code quality, documentation, architecture, testing, dependencies)
-2. **Known problem areas:** Are there specific directories, modules, or concerns to focus on?
-3. **Out of scope:** Any areas to explicitly skip? (e.g., generated code, vendored deps, legacy modules)
-4. **Specific concerns:** Anything particular to look for?
+**Call 1 -- priorities and focus:**
+
+```
+AskUserQuestion({
+  questions: [
+    {
+      question: "Which review aspects matter most to you? Select all that are high priority.",
+      header: "Priorities",
+      options: [pick the top 4 most relevant to this project from: security, performance, code quality, architecture, testing, dependencies, documentation -- choose based on what Context.md revealed],
+      multiSelect: true
+    },
+    {
+      question: "Are there specific directories, modules, or concerns to focus on? Select any known problem areas, or use Other to describe.",
+      header: "Focus Areas",
+      options: [derive 2-4 options from Context.md findings -- e.g. specific modules that appeared complex, directories with high dependency counts, areas flagged in open questions],
+      multiSelect: true
+    }
+  ]
+})
+```
+
+**Call 2 -- exclusions and concerns:**
+
+```
+AskUserQuestion({
+  questions: [
+    {
+      question: "Any areas to explicitly exclude from the review?",
+      header: "Out of Scope",
+      options: [derive 2-4 options from Context.md -- e.g. generated code directories, vendored dependencies, legacy modules, test fixtures],
+      multiSelect: true
+    },
+    {
+      question: "Anything specific you'd like the review to look for? Select any that apply, or describe in Other.",
+      header: "Concerns",
+      options: [derive 2-4 options from Context.md open questions or common concerns for the detected tech stack -- e.g. "Memory leaks", "API backward compat", "Secret exposure", "Circular deps"],
+      multiSelect: true
+    }
+  ]
+})
+```
 
 ### Step 4: Ask About Derived Interfaces
 
-If Context.md detected derived interfaces (SDKs, APIs, RPC, MCP, WebUI):
-- Confirm which ones are accurate
-- Ask which should be included in the review
-- Ask about any undocumented interfaces
+If Context.md detected derived interfaces, use `AskUserQuestion` to confirm them:
+
+```
+AskUserQuestion({
+  questions: [
+    {
+      question: "Context analysis detected these derived interfaces: [list them]. Which are accurate and should be included in the review?",
+      header: "Interfaces",
+      options: [list up to 4 detected interfaces -- label: interface name, description: what was detected. If more than 4, batch into multiple calls],
+      multiSelect: true
+    },
+    {
+      question: "Are there any additional interfaces, APIs, or SDKs not listed above that should be reviewed?",
+      header: "Undocumented",
+      options: [
+        { label: "No", description: "The detected set is complete" },
+        { label: "Yes", description: "I'll describe them -- use Other" }
+      ],
+      multiSelect: false
+    }
+  ]
+})
+```
+
+If Context.md detected no derived interfaces, skip this step entirely.
 
 ### Step 5: Resolve Open Questions
 
-Address any open questions from Context.md. Present them grouped by topic. Ask follow-up questions to clarify ambiguous answers.
+Use `AskUserQuestion` to resolve open questions from Context.md.
 
-Handle deferrals gracefully:
-- "you decide" -- provide a clear recommendation and record it as the decision
-- "I don't know" -- record it as deferred, note assumptions being made
+**Constructing questions from Context.md:**
+- Group questions by topic
+- For each group, call `AskUserQuestion` with 1-4 questions
+- For each question: set `header` to a short topic label, write the open question as `question` with added context, and provide 2-4 options representing plausible answers or approaches
+- Use `multiSelect: false` for mutually exclusive choices, `multiSelect: true` when multiple answers can apply
+
+**Handle deferrals:**
+- If the user selects "Other" and writes "you decide" or similar, provide a clear recommendation and record it as the decision
+- If the user writes "I don't know" or similar, record it as deferred and note assumptions being made
+
+**Follow-ups:** If an answer is ambiguous or raises new questions, issue a follow-up `AskUserQuestion` call to clarify before moving on.
+
+If Context.md has no open questions, skip this step.
 
 ### Step 6: Write Interview.md
 

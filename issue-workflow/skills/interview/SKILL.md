@@ -2,7 +2,7 @@
 name: interview
 description: Resolve open questions and ambiguities from research with user input. Asks structured questions and records decisions. Invoke with /issue-workflow:interview <issue-number>.
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit
+allowed-tools: Read, Grep, Glob, Bash, Agent, Write, Edit, AskUserQuestion
 ---
 
 # Interview Phase
@@ -46,28 +46,64 @@ Compile a complete list of everything that needs user input. Group questions by 
 
 ### Step 3: Conduct the Interview
 
-Present questions to the user in logical groups (not all at once). For each group:
+Use the `AskUserQuestion` tool to present questions to the user. Process one topic group at a time.
 
-1. Introduce the topic area briefly
-2. Ask the questions, providing context and options
-3. Wait for the user's answers
-4. Confirm your understanding of their decisions
-5. If an answer raises new questions, ask follow-ups immediately
-6. Move to the next topic group
+**For each topic group:**
+
+1. Call `AskUserQuestion` with 1-4 questions for that group. For each question:
+   - Set `header` to a short topic label (max 12 chars, e.g. "Auth", "Error Mode", "API Style", "DB Choice")
+   - Write a `question` that includes context on why it matters and what depends on the answer
+   - Provide 2-4 `options`, each with a `label` (the choice) and `description` (tradeoffs/implications). Derive options from Research.md findings. Mark your recommendation in the description (e.g. "Recommended -- ...")
+   - Set `multiSelect: true` only when multiple options can be chosen simultaneously. Use `multiSelect: false` for mutually exclusive design choices
+   - The user can always type a free-text "Other" response -- do not waste an option slot on "Other" or "None of the above"
+
+2. After each `AskUserQuestion` call completes, review the responses:
+   - If an answer is "Other" with free text, incorporate the user's stated preference
+   - If an answer raises new questions, issue a follow-up `AskUserQuestion` before moving to the next topic group
+   - If the user defers ("you decide"), make a clear recommendation via a single-question `AskUserQuestion` with options like "Accept recommendation" / "Let me reconsider" so the decision is explicitly recorded
+
+3. Move to the next topic group
+
+**Constructing questions from Research.md:**
+
+Each open question in Research.md typically has: question text, options, tradeoffs, and recommendation. Map these directly:
+- Research.md "Question" becomes the `question` field (prepend relevant context)
+- Research.md "Options" become `options` (use option name as `label`, tradeoff summary as `description`)
+- Research.md "Recommendation" becomes a note in the recommended option's `description`
+- If Research.md lists more than 4 options, consolidate the least distinct options or group them -- the user can always use "Other" for anything excluded
+
+**Batching rules:**
+- Group questions by topic area (as identified in Step 2)
+- If a topic has more than 4 questions, split into multiple `AskUserQuestion` calls
+- If a topic has only 1 question, that's fine as a solo call
+- Never combine questions from different topic areas in one call
 
 **Guidelines:**
-- Ask one topic group at a time -- do not dump all questions at once
-- If the user's answer is ambiguous, ask for clarification
-- If the user asks a question back, answer it using your research
+- If the user asks a question back, answer it using your research, then re-ask via `AskUserQuestion` if the original question wasn't resolved
 - If the user identifies something that needs more research, note it (the research stage can be re-triggered later)
-- If the user defers a decision ("you decide" / "whatever you think"), make a clear recommendation and confirm they accept it
 - Be thorough -- missing a question here means making an assumption later
 
 ### Step 4: Confirm Completeness
 
-Before finalizing, review all open questions from Research.md and verify every one has been addressed. If any remain, ask about them.
+Review all open questions from Research.md and verify every one has been addressed. If any remain, ask about them via `AskUserQuestion`.
 
-Tell the user: "All open questions have been addressed. I'll document the decisions and proceed to planning."
+Once all questions are resolved, use `AskUserQuestion` to confirm:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "All open questions have been addressed. Here are the key decisions: [list 3-5 most impactful decisions]. Ready to proceed to planning?",
+    header: "Confirm",
+    options: [
+      { label: "Proceed", description: "All decisions are captured correctly -- move to planning" },
+      { label: "More input", description: "I have additional concerns or corrections" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+If the user selects "More input", gather their additional input via follow-up `AskUserQuestion` calls before finalizing.
 
 ### Step 5: Write Interview.md
 
