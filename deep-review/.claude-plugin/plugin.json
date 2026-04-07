@@ -1,7 +1,7 @@
 {
   "name": "deep-review",
   "version": "1.0.0",
-  "description": "7-stage deep codebase review: context building, interview, tooling, planning, parallel sub-reviews, remediation planning, and remediation",
+  "description": "9-stage deep codebase review: context building, interview, tooling, planning, parallel sub-reviews, remediation planning, remediation, verification, and integration",
   "author": { "name": "22a435" },
   "repository": "https://github.com/22a435/claude-plugins",
   "license": "MIT"

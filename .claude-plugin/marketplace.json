@@ -10,7 +10,7 @@
     {
       "name": "deep-review",
       "source": "./deep-review",
-      "description": "7-stage deep codebase review with parallel sub-reviewers and automated remediation"
+      "description": "9-stage deep codebase review with parallel sub-reviewers and automated remediation"
     }
   ]
 }

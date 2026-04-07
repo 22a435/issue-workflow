@@ -11,7 +11,7 @@ You are performing the **remediation** stage of a deep codebase review. Your job
 
 ## Workflow Context
 
-This skill is one stage of a 7-stage deep review workflow orchestrated by the `deep-review` CLI.
+This skill is one stage of a 9-stage deep review workflow orchestrated by the `deep-review` CLI.
 
 - **Branch:** `claude/review/<session-number>` (created by the orchestrator during setup)
 - **Work directory:** `./claude-reviews/<session-number>/` -- each stage produces one document here
@@ -197,15 +197,50 @@ See \`claude-reviews/$0/Remediation.md\` for full details."
 **Rules:**
 - Write exactly one stage name, nothing else
 - Only write this file if you want a NON-DEFAULT transition
-- If you do not write this file, the orchestrator advances to `done` (default)
+- If you do not write this file, the orchestrator advances to `verify` (default)
 
 **When to signal:**
-- Default (done) is almost always correct. This is the final stage.
-- Do NOT write a signal file unless something exceptional requires another stage.
+- Default (verify) is almost always correct. Verification checks that all remediations were applied.
+- Do NOT write a signal file unless something exceptional requires skipping verification.
 
 ## Re-trigger Behavior
 
-If re-triggered and `Remediation.md` already exists:
+If re-triggered and `Remediation.md` already exists, first check for `Verify.md`:
+
+### Case A: Verify.md exists (targeted remediation)
+
+Verify has identified specific gaps -- failed checks, missed items, or remediations undone by integration.
+
+1. Read `Verify.md` to find exactly what needs addressing
+2. Only fix the specific items listed in Verify.md -- do NOT re-run the full remediation plan
+3. For each item:
+   - Read the affected files
+   - Apply the fix or re-apply the remediation
+   - Verify the fix locally
+4. Append a targeted section:
+
+```
+---
+
+## Targeted Remediation (<date>)
+
+### Trigger
+<verify found gaps / verify found remediations undone by integration>
+
+### Items from Verify.md
+
+#### <item title>
+- **Verify.md finding:** <what verify reported>
+- **Action taken:** <what was fixed>
+- **Files changed:** <list>
+- **Local verification:** PASS/FAIL
+
+### Updated Summary
+- Items addressed: <N>/<M from Verify.md>
+- Failures: <N>
+```
+
+### Case B: No Verify.md (standard re-trigger)
 
 1. Read existing Remediation.md and the current Remediation-Plan.md
 2. Identify remediations that were not yet applied or that failed previously

@@ -1,6 +1,6 @@
 # deep-review
 
-A Claude Code plugin that orchestrates comprehensive codebase reviews through a 7-stage workflow with up to 10 parallel sub-reviewers and automated remediation.
+A Claude Code plugin that orchestrates comprehensive codebase reviews through a 9-stage workflow with up to 10 parallel sub-reviewers, automated remediation, verification, and integration.
 
 ## How It Works
 
@@ -54,7 +54,7 @@ deep-review --model opus[1m]
 ## Stages
 
 ```
-setup -> context-building -> interview <-> update-tooling -> plan -> review -> remediation-plan -> remediation -> done
+setup -> context-building -> interview <-> update-tooling -> plan -> review -> remediation-plan -> remediation -> verify -> integrate -> done
 ```
 
 | Stage | Model (default) | Purpose |
@@ -67,10 +67,12 @@ setup -> context-building -> interview <-> update-tooling -> plan -> review -> r
 | **review** | opus[1m] | Deep review with up to 10 parallel sub-reviewers |
 | **remediation-plan** | opus[1m] | Prioritize fixes and issues; requires user approval |
 | **remediation** | sonnet[1m] | Apply fixes, create issues, run /simplify cleanup |
+| **verify** | sonnet[1m] | Verify remediations match plan and code |
+| **integrate** | opus[1m] | Prepare branch for merge; rebase onto main if needed |
 
 ### State Machine
 
-Interview, update-tooling, and plan can loop between each other (for adding tools or adjusting priorities). The review stage can self-loop for deeper investigation. Remediation-plan can loop back to interview/update-tooling if more tools are needed.
+Interview, update-tooling, and plan can loop between each other (for adding tools or adjusting priorities). The review stage can self-loop for deeper investigation. Remediation-plan can loop back to interview/update-tooling if more tools are needed. Verify loops back to remediation if gaps are found; otherwise advances to integrate. Integrate handles rebasing onto main; if a rebase occurs it loops back to verify to confirm remediations survived.
 
 ### Sub-Reviewers (Review Stage)
 
@@ -114,6 +116,8 @@ Each review session gets `./claude-reviews/<session-number>/`:
 | review | `Review.md` + `sub-reviews/*.md` |
 | remediation-plan | `Remediation-Plan.md` |
 | remediation | `Remediation.md` |
+| verify | `Verify.md` |
+| integrate | `Integration.md` |
 
 Tool output is captured in `sub-reviews/.tool-output/`.
 

@@ -26,7 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # ── Valid stages (for --resume validation) ────────────────────────
-readonly ALL_STAGES=(setup context-building interview update-tooling plan review remediation-plan remediation)
+readonly ALL_STAGES=(setup context-building interview update-tooling plan review remediation-plan remediation verify integrate)
 
 # ── Transition rules ──────────────────────────────────────────────
 # Each stage maps to its space-delimited list of allowed next stages.
@@ -38,7 +38,9 @@ declare -A ALLOWED_TRANSITIONS=(
   [plan]="review interview update-tooling plan"
   [review]="remediation-plan review"
   [remediation-plan]="remediation interview update-tooling remediation-plan"
-  [remediation]="done"
+  [remediation]="verify done"
+  [verify]="integrate remediation verify"
+  [integrate]="verify integrate done"
 )
 
 declare -A DEFAULT_NEXT=(
@@ -49,7 +51,9 @@ declare -A DEFAULT_NEXT=(
   [plan]="review"
   [review]="remediation-plan"
   [remediation-plan]="remediation"
-  [remediation]="done"
+  [remediation]="verify"
+  [verify]="integrate"
+  [integrate]="verify"
 )
 
 declare -A STAGE_DESC=(
@@ -61,6 +65,8 @@ declare -A STAGE_DESC=(
   [review]="Deep review with parallel sub-reviewers"
   [remediation-plan]="Draft and approve remediation plan"
   [remediation]="Apply remediations, create issues, run /simplify"
+  [verify]="Verify remediations match plan and code"
+  [integrate]="Prepare branch for merge"
 )
 
 # ── Skill invocations ─────────────────────────────────────────────
@@ -76,6 +82,8 @@ declare -A STAGE_SKILL=(
   [review]="/${_PREFIX}review"
   [remediation-plan]="/${_PREFIX}remediation-plan"
   [remediation]="/${_PREFIX}remediation"
+  [verify]="/${_PREFIX}verify"
+  [integrate]="/${_PREFIX}integrate"
 )
 
 declare -A STAGE_DOC=(
@@ -86,6 +94,8 @@ declare -A STAGE_DOC=(
   [review]="Review.md"
   [remediation-plan]="Remediation-Plan.md"
   [remediation]="Remediation.md"
+  [verify]="Verify.md"
+  [integrate]="Integration.md"
 )
 
 # ── Model assignments (configurable via env vars) ─────────────────
@@ -101,6 +111,8 @@ declare -A STAGE_MODEL=(
   [review]="${DEEP_REVIEW_MODEL_REVIEW:-${DEEP_REVIEW_MODEL:-opus[1m]}}"
   [remediation-plan]="${DEEP_REVIEW_MODEL_REMEDIATION_PLAN:-${DEEP_REVIEW_MODEL:-opus[1m]}}"
   [remediation]="${DEEP_REVIEW_MODEL_REMEDIATION:-${DEEP_REVIEW_MODEL:-sonnet[1m]}}"
+  [verify]="${DEEP_REVIEW_MODEL_VERIFY:-${DEEP_REVIEW_MODEL:-sonnet[1m]}}"
+  [integrate]="${DEEP_REVIEW_MODEL_INTEGRATE:-${DEEP_REVIEW_MODEL:-opus[1m]}}"
 )
 
 # ── Effort assignments (configurable via env vars) ────────────────
@@ -113,6 +125,8 @@ declare -A STAGE_EFFORT=(
   [review]="${DEEP_REVIEW_EFFORT_REVIEW:-max}"
   [remediation-plan]="${DEEP_REVIEW_EFFORT_REMEDIATION_PLAN:-high}"
   [remediation]="${DEEP_REVIEW_EFFORT_REMEDIATION:-high}"
+  [verify]="${DEEP_REVIEW_EFFORT_VERIFY:-high}"
+  [integrate]="${DEEP_REVIEW_EFFORT_INTEGRATE:-high}"
 )
 
 # ── Defaults ──────────────────────────────────────────────────────
@@ -146,12 +160,16 @@ Stages:
   review             Deep review with up to 10 parallel sub-reviewers
   remediation-plan   Draft and approve remediation plan from findings
   remediation        Apply fixes, create issues, run /simplify cleanup
+  verify             Verify remediations match plan and code
+  integrate          Prepare review branch for merge; rebase onto main
 
 Stage transitions:
   Context-building always advances to interview.
   Interview, update-tooling, and plan can loop between each other.
   Review can self-loop for deeper investigation.
   Remediation-plan can loop back for more tools.
+  Verify loops to remediation if gaps found; advances to integrate if all pass.
+  Integrate handles rebase onto main; loops to verify if rebase occurred.
   Skills signal non-default transitions via .next-stage file.
 
 Configuration (env vars):
@@ -434,8 +452,46 @@ SESSION_EOF
       current_stage="context-building"
       ;;
 
+    # ── TRIVIAL INTEGRATION (inline -- skip Claude when main hasn't moved)
+    integrate)
+      git fetch origin main 2>/dev/null || true
+      diverged_commits=$(git log --oneline HEAD..origin/main 2>/dev/null | wc -l)
+      if [[ $diverged_commits -eq 0 ]]; then
+        echo "  Main has not diverged. Handling integration inline (no Claude session needed)."
+
+        cat > "${WORK_DIR}/Integration.md" << INTEG_EOF
+# Integration Report: Session #${SESSION}
+
+## Summary
+Main has not diverged. No integration needed. Branch is ready for merge.
+INTEG_EOF
+
+        git add "${WORK_DIR}/Integration.md"
+        git commit -m "claude-review(integrate): no integration needed [session #${SESSION}]"
+        git push
+        gh pr comment "$BRANCH" --body "**Integration:** Main has not diverged. No integration needed. Branch is ready for merge." 2>/dev/null || true
+
+        echo "done" > "${WORK_DIR}/.next-stage"
+        previous_stage="$current_stage"
+        current_stage="$(resolve_next_stage "$current_stage")"
+      else
+        echo "  Main has diverged (${diverged_commits} new commits). Launching Claude for integration."
+
+        clean_signal_file
+        claude --model "$stage_model" --effort "$stage_effort" "${STAGE_SKILL[$current_stage]} ${SESSION}"
+
+        doc="${STAGE_DOC[$current_stage]:-}"
+        if [[ -n "$doc" ]]; then
+          check_document "$doc"
+        fi
+
+        previous_stage="$current_stage"
+        current_stage="$(resolve_next_stage "$current_stage")"
+      fi
+      ;;
+
     # ── ALL SKILL-BASED STAGES ─────────────────────────────────
-    context-building|interview|update-tooling|plan|review|remediation-plan|remediation)
+    context-building|interview|update-tooling|plan|review|remediation-plan|remediation|verify)
       clean_signal_file
       claude --model "$stage_model" --effort "$stage_effort" "${STAGE_SKILL[$current_stage]} ${SESSION}"
 

@@ -11,7 +11,7 @@ You are performing the **review** stage of a deep codebase review. This is the c
 
 ## Workflow Context
 
-This skill is one stage of a 7-stage deep review workflow orchestrated by the `deep-review` CLI.
+This skill is one stage of a 9-stage deep review workflow orchestrated by the `deep-review` CLI.
 
 - **Branch:** `claude/review/<session-number>` (created by the orchestrator during setup)
 - **Work directory:** `./claude-reviews/<session-number>/` -- each stage produces one document here
