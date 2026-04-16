@@ -4,7 +4,7 @@ set -uo pipefail
 # ═══════════════════════════════════════════════════════════════════
 # deep-review - Claude Code deep codebase review orchestrator
 # ═══════════════════════════════════════════════════════════════════
-# Usage: deep-review [--effort high|max] [--model <model>] [--resume <stage>] [--session <N>]
+# Usage: deep-review [--effort high|xhigh|max] [--model <model>] [--resume <stage>] [--session <N>]
 #
 # Orchestrates a full codebase review by launching sequential
 # Claude Code sessions, each with a dedicated skill and fresh context.
@@ -130,21 +130,21 @@ declare -A STAGE_MODEL=(
 # ── Effort assignments (configurable via env vars) ────────────────
 declare -A STAGE_EFFORT=(
   [setup]="${DEEP_REVIEW_EFFORT_SETUP:-low}"
-  [context-building]="${DEEP_REVIEW_EFFORT_CONTEXT_BUILDING:-high}"
-  [interview]="${DEEP_REVIEW_EFFORT_INTERVIEW:-high}"
-  [update-tooling]="${DEEP_REVIEW_EFFORT_UPDATE_TOOLING:-high}"
-  [plan-sc-audit]="${DEEP_REVIEW_EFFORT_PLAN_SC_AUDIT:-high}"
+  [context-building]="${DEEP_REVIEW_EFFORT_CONTEXT_BUILDING:-xhigh}"
+  [interview]="${DEEP_REVIEW_EFFORT_INTERVIEW:-xhigh}"
+  [update-tooling]="${DEEP_REVIEW_EFFORT_UPDATE_TOOLING:-xhigh}"
+  [plan-sc-audit]="${DEEP_REVIEW_EFFORT_PLAN_SC_AUDIT:-xhigh}"
   [run-sc-audit]="${DEEP_REVIEW_EFFORT_RUN_SC_AUDIT:-max}"
-  [plan]="${DEEP_REVIEW_EFFORT_PLAN:-high}"
+  [plan]="${DEEP_REVIEW_EFFORT_PLAN:-xhigh}"
   [review]="${DEEP_REVIEW_EFFORT_REVIEW:-max}"
-  [remediation-plan]="${DEEP_REVIEW_EFFORT_REMEDIATION_PLAN:-high}"
-  [remediation]="${DEEP_REVIEW_EFFORT_REMEDIATION:-high}"
-  [verify]="${DEEP_REVIEW_EFFORT_VERIFY:-high}"
-  [integrate]="${DEEP_REVIEW_EFFORT_INTEGRATE:-high}"
+  [remediation-plan]="${DEEP_REVIEW_EFFORT_REMEDIATION_PLAN:-xhigh}"
+  [remediation]="${DEEP_REVIEW_EFFORT_REMEDIATION:-xhigh}"
+  [verify]="${DEEP_REVIEW_EFFORT_VERIFY:-xhigh}"
+  [integrate]="${DEEP_REVIEW_EFFORT_INTEGRATE:-xhigh}"
 )
 
 # ── Defaults ──────────────────────────────────────────────────────
-EFFORT="${CLAUDE_CODE_EFFORT_LEVEL:-high}"
+EFFORT="${CLAUDE_CODE_EFFORT_LEVEL:-xhigh}"
 EFFORT_EXPLICIT=false
 RESUME_FROM=""
 SESSION_EXPLICIT=""
@@ -159,7 +159,7 @@ Stages run as a state machine -- pre-review stages can loop freely,
 the review stage can self-loop for deeper investigation.
 
 Options:
-  --effort <level>   Effort level: high (default) or max
+  --effort <level>   Effort level: high, xhigh (default), or max
   --model <model>    Override model for all stages (e.g., sonnet, opus[1m])
   --resume <stage>   Resume from a specific stage (requires --session)
   --session <N>      Use a specific session number (auto-increments if omitted)
@@ -209,7 +209,7 @@ EOF
 # ── Parse arguments ───────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --effort) EFFORT="${2:?--effort requires a value (high or max)}"; EFFORT_EXPLICIT=true; shift 2 ;;
+    --effort) EFFORT="${2:?--effort requires a value (high, xhigh, or max)}"; EFFORT_EXPLICIT=true; shift 2 ;;
     --model)
       DEEP_REVIEW_MODEL="${2:?--model requires a value}"
       export DEEP_REVIEW_MODEL
