@@ -20,6 +20,7 @@ This skill is one stage of a multi-stage deep review workflow orchestrated by th
 - **PR updates:** This stage creates the draft PR and posts a summary to the PR thread (via `gh pr comment`).
 - **Subagent cost optimization:** Downgrade information-gathering agents (Explore, web research, context7) to `model: "sonnet"`. Keep the parent session's model for synthesis and judgment.
 - **Subagent write boundary:** Subagents in this stage must NOT create, edit, or write any files under `./claude-reviews/`. Only this parent session writes the output document. Include this constraint in every subagent prompt you compose.
+- **No self-loop:** Do not use `/loop`, `ScheduleWakeup`, or recursive `claude` invocations to re-run this skill. For short waits, run the command synchronously with `Bash` (it blocks until completion); for long waits, use `Bash` with `run_in_background` and `Monitor`. If you cannot finish in one pass, commit your partial progress and write your own stage name to `.next-stage` -- the orchestrator re-enters the stage within its loop-safety limits. Never re-invoke yourself.
 
 ## Context
 - **Session number:** $0 (the review session number passed as your argument)

@@ -21,6 +21,7 @@ This skill is one stage of a multi-stage deep review workflow orchestrated by th
 - **PR updates:** Post the executive summary to the PR thread (via `gh pr comment`) after completing the stage.
 - **Subagent cost optimization:** All sub-reviewer agents use `model: "sonnet"` -- they are performing analysis and pattern-matching. The parent session (this one, on opus) handles synthesis, cross-referencing, severity judgments, and writing Review.md.
 - **No code edits:** This stage does NOT edit any source code. It only produces review documents. The remediation stage handles code changes.
+- **No self-loop:** Do not use `/loop`, `ScheduleWakeup`, or recursive `claude` invocations to re-run this skill. For short waits, run the command synchronously with `Bash` (it blocks until completion); for long waits, use `Bash` with `run_in_background` and `Monitor`. If you cannot finish in one pass, commit your partial progress and write your own stage name to `.next-stage` -- the orchestrator re-enters the stage within its loop-safety limits. Never re-invoke yourself.
 
 ## Context
 - **Session number:** $0 (the review session number passed as your argument)

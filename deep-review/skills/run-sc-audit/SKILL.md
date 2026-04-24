@@ -20,6 +20,7 @@ This skill is one stage of a deep review workflow orchestrated by the `deep-revi
 - **PR updates:** Post a summary to the PR thread (via `gh pr comment`) after completing the stage.
 - **No code edits:** This stage does NOT edit source code. It runs the audit tool and produces review documents.
 - **Subagent write boundary:** Subagents in this stage must NOT create, edit, or write any files under `./claude-reviews/`. Only this parent session writes the output document.
+- **No self-loop:** Do not use `/loop`, `ScheduleWakeup`, or recursive `claude` invocations to re-run this skill. For short waits, run the command synchronously with `Bash` (it blocks until completion); for long waits, use `Bash` with `run_in_background` and `Monitor`. If you cannot finish in one pass, commit your partial progress and write your own stage name to `.next-stage` -- the orchestrator re-enters the stage within its loop-safety limits. Never re-invoke yourself.
 
 ## Context
 - **Session number:** $0 (the review session number passed as your argument)
